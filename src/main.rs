@@ -14,7 +14,8 @@ use std::{
 };
 
 use crate::{
-    cli::Opt, client::KaspadHandler, miner::MinerManager, proto::NotifyNewBlockTemplateRequestMessage, target::Uint256,
+    cli::Opt, client::KaspadHandler, miner::MinerManager, proto::NotifyNewBlockTemplateRequestMessage,
+    proto::RpcNotifyCommand, target::Uint256,
 };
 
 mod cli;
@@ -89,7 +90,9 @@ async fn main() -> Result<(), Error> {
                 devfund_address
             );
         }
-        client.client_send(NotifyNewBlockTemplateRequestMessage {}).await?;
+        client
+            .client_send(NotifyNewBlockTemplateRequestMessage { command: RpcNotifyCommand::NotifyStart as i32 })
+            .await?;
         client.client_get_block_template().await?;
 
         let mut miner_manager =
