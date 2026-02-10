@@ -41,8 +41,15 @@ impl KaspadHandler {
         let (send_channel, recv) = mpsc::channel(3);
 
         let extra_data = match user_agent_suffix {
-            Some(suffix) => format!("{}/{}", EXTRA_DATA, suffix),
-            None => EXTRA_DATA.to_string(),
+            Some(suffix) => {
+                let extra_data = format!("{}/{}", EXTRA_DATA, suffix);
+                info!("Using user agent: {}", extra_data);
+                extra_data
+            }
+            None => {
+                info!("Using user agent: {}, specify --user-agent-suffix to customize", EXTRA_DATA);
+                EXTRA_DATA.to_string()
+            }
         };
 
         send_channel.send(GetInfoRequestMessage {}.into()).await?;

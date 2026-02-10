@@ -87,10 +87,10 @@ impl Opt {
 
         if let Some(suffix) = &self.user_agent_suffix {
             if suffix.contains('/') {
-                return Err("user-agent-suffix cannot contain '/' characters".into());
+                return Err("--user-agent-suffix cannot contain '/' characters".into());
             }
             if suffix.chars().count() > 20 {
-                return Err("user-agent-suffix must be at most 20 characters".into());
+                return Err("--user-agent-suffix must be at most 20 characters".into());
             }
         }
 
