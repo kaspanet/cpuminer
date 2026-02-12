@@ -1,6 +1,6 @@
 use crate::{
     pow,
-    proto::{KaspadMessage, RpcBlock},
+    proto::{KaspadRequest, RpcBlock},
     swap_rust::WatchSwap,
     Error, ShutdownHandler,
 };
@@ -26,7 +26,7 @@ type MinerHandler = std::thread::JoinHandle<Result<(), Error>>;
 pub struct MinerManager {
     handles: Vec<MinerHandler>,
     block_channel: WatchSwap<pow::State>,
-    send_channel: Sender<KaspadMessage>,
+    send_channel: Sender<KaspadRequest>,
     logger_handle: JoinHandle<()>,
     is_synced: bool,
     hashes_tried: Arc<AtomicU64>,
@@ -49,7 +49,7 @@ const LOG_RATE: Duration = Duration::from_secs(10);
 
 impl MinerManager {
     pub fn new(
-        send_channel: Sender<KaspadMessage>,
+        send_channel: Sender<KaspadRequest>,
         n_cpus: Option<u16>,
         throttle: Option<Duration>,
         shutdown: ShutdownHandler,
@@ -78,7 +78,7 @@ impl MinerManager {
     }
 
     fn launch_cpu_threads(
-        send_channel: Sender<KaspadMessage>,
+        send_channel: Sender<KaspadRequest>,
         hashes_tried: Arc<AtomicU64>,
         work_channel: WatchSwap<pow::State>,
         shutdown: ShutdownHandler,
@@ -118,7 +118,7 @@ impl MinerManager {
     }
 
     pub fn launch_cpu_miner(
-        send_channel: Sender<KaspadMessage>,
+        send_channel: Sender<KaspadRequest>,
         mut block_channel: WatchSwap<pow::State>,
         hashes_tried: Arc<AtomicU64>,
         throttle: Option<Duration>,
@@ -126,9 +126,9 @@ impl MinerManager {
     ) -> MinerHandler {
         // We mark it cold as the function is not called often, and it's not in the hot path
         #[cold]
-        fn found_block(send_channel: &Sender<KaspadMessage>, block: RpcBlock) -> Result<(), Error> {
+        fn found_block(send_channel: &Sender<KaspadRequest>, block: RpcBlock) -> Result<(), Error> {
             let block_hash = block.block_hash().expect("We just got it from the state, we should be able to hash it");
-            send_channel.blocking_send(KaspadMessage::submit_block(block))?;
+            send_channel.blocking_send(KaspadRequest::submit_block(block))?;
             info!("Found a block: {:x}", block_hash);
             Ok(())
         }

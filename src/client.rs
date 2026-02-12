@@ -1,8 +1,8 @@
 use crate::{
     miner::MinerManager,
     proto::{
-        kaspad_message::Payload, rpc_client::RpcClient, GetBlockTemplateRequestMessage, GetInfoRequestMessage,
-        KaspadMessage,
+        kaspad_response::Payload as ResponsePayload, rpc_client::RpcClient, GetBlockTemplateRequestMessage,
+        GetInfoRequestMessage, KaspadRequest, KaspadResponse,
     },
     Error, ShutdownHandler,
 };
@@ -16,8 +16,8 @@ static EXTRA_DATA: &str = concat!(env!("CARGO_PKG_VERSION"));
 #[allow(dead_code)]
 pub struct KaspadHandler {
     client: RpcClient<TonicChannel>,
-    pub send_channel: Sender<KaspadMessage>,
-    stream: Streaming<KaspadMessage>,
+    pub send_channel: Sender<KaspadRequest>,
+    stream: Streaming<KaspadResponse>,
     miner_address: String,
     mine_when_not_synced: bool,
     devfund_address: Option<String>,
@@ -78,11 +78,11 @@ impl KaspadHandler {
         self.devfund_percent = percent;
     }
 
-    pub async fn client_send(&self, msg: impl Into<KaspadMessage>) -> Result<(), SendError<KaspadMessage>> {
+    pub async fn client_send(&self, msg: impl Into<KaspadRequest>) -> Result<(), SendError<KaspadRequest>> {
         self.send_channel.send(msg.into()).await
     }
 
-    pub async fn client_get_block_template(&mut self) -> Result<(), SendError<KaspadMessage>> {
+    pub async fn client_get_block_template(&mut self) -> Result<(), SendError<KaspadRequest>> {
         let pay_address = match &self.devfund_address {
             Some(devfund_address) if (self.block_template_ctr % 10_000) as u16 <= self.devfund_percent => {
                 devfund_address.clone()
@@ -106,28 +106,32 @@ impl KaspadHandler {
         Ok(())
     }
 
-    async fn handle_message(&mut self, msg: Payload, miner: &mut MinerManager) -> Result<(), Error> {
+    async fn handle_message(&mut self, msg: ResponsePayload, miner: &mut MinerManager) -> Result<(), Error> {
         match msg {
-            Payload::NewBlockTemplateNotification(_) => self.client_get_block_template().await?,
-            Payload::GetBlockTemplateResponse(template) => match (template.block, template.is_synced, template.error) {
-                (Some(b), true, None) => miner.process_block(Some(b))?,
-                (Some(b), false, None) if self.mine_when_not_synced => miner.process_block(Some(b))?,
-                (_, false, None) => miner.process_block(None)?,
-                (_, _, Some(e)) => warn!("GetTemplate returned with an error: {:?}", e),
-                (None, true, None) => error!("No block and No Error!"),
-            },
-            Payload::SubmitBlockResponse(res) => match res.error {
+            ResponsePayload::NewBlockTemplateNotification(_) => self.client_get_block_template().await?,
+            ResponsePayload::GetBlockTemplateResponse(template) => {
+                match (template.block, template.is_synced, template.error) {
+                    (Some(b), true, None) => miner.process_block(Some(b))?,
+                    (Some(b), false, None) if self.mine_when_not_synced => miner.process_block(Some(b))?,
+                    (_, false, None) => miner.process_block(None)?,
+                    (_, _, Some(e)) => warn!("GetTemplate returned with an error: {:?}", e),
+                    (None, true, None) => error!("No block and No Error!"),
+                }
+            }
+            ResponsePayload::SubmitBlockResponse(res) => match res.error {
                 None => info!("Block submitted successfully!"),
                 Some(e) => warn!("Failed submitting block: {:?}", e),
             },
-            Payload::GetBlockResponse(msg) => {
+            ResponsePayload::GetBlockResponse(msg) => {
                 if let Some(e) = msg.error {
                     return Err(e.message.into());
                 }
                 info!("Get block response: {:?}", msg);
             }
-            Payload::GetInfoResponse(info) => info!("Kaspad version: {}", info.server_version),
-            Payload::NotifyNewBlockTemplateResponse(res) => match res.error {
+            ResponsePayload::GetInfoResponse(info) => {
+                info!("Kaspad: {} Synced: {}", info.server_version, info.is_synced)
+            }
+            ResponsePayload::NotifyNewBlockTemplateResponse(res) => match res.error {
                 None => info!("Registered for new template notifications"),
                 Some(e) => error!("Failed registering for new template notifications: {:?}", e),
             },

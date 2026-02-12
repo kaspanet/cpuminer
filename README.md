@@ -23,8 +23,8 @@ USAGE:
 FLAGS:
     -d, --debug                   Enable debug logging level
     -h, --help                    Prints help information
-        --mine-when-not-synced    Mine even when kaspad says it is not synced, only useful when passing `--allow-submit-
-                                  block-when-not-synced` to kaspad  [default: false]
+        --mine-when-not-synced    Mine even when kaspad says it is not synced, only useful when passing
+                                  `--enable-unsynced-mining` to kaspad  [default: false]
         --testnet                 Use testnet instead of mainnet [default: false]
     -V, --version                 Prints version information
 

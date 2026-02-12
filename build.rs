@@ -1,7 +1,7 @@
 use std::env;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let protowire_files = &["proto/messages.proto", "proto/rpc.proto", "proto/p2p.proto"];
+    let protowire_files = &["proto/messages.proto", "proto/rpc.proto"];
     let dirs = &["proto"];
 
     println!("cargo:rerun-if-changed=proto");

@@ -36,7 +36,7 @@ pub struct Opt {
     /// Amount of miner threads to launch [default: number of logical cpus]
     pub num_threads: Option<u16>,
     #[clap(long = "mine-when-not-synced", display_order = 8)]
-    /// Mine even when kaspad says it is not synced, only useful when passing `--allow-submit-block-when-not-synced` to kaspad  [default: false]
+    /// Mine even when kaspad says it is not synced, only useful when passing `--enable-unsynced-mining` to kaspad  [default: false]
     pub mine_when_not_synced: bool,
     #[clap(long = "throttle", display_order = 9)]
     /// Throttle (milliseconds) between each pow hash generation (used for development testing)

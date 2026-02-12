@@ -171,6 +171,7 @@ mod tests {
     fn test_serialize_header() {
         let header = RpcBlockHeader {
             version: 24565,
+            hash: "0000000000000000000000000000000000000000000000000000000000000000".into(),
             parents: vec![
                 RpcBlockLevelParents {
                     parent_hashes: vec![
