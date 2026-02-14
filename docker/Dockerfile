@@ -10,9 +10,7 @@ RUN apk --no-cache add \
   g++ \
   clang15-dev \
   linux-headers \
-  openssl-dev \
-  protoc \
-  curl
+  protoc
 
 WORKDIR /work
 
