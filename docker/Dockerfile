@@ -14,9 +14,6 @@ RUN apk --no-cache add \
 
 WORKDIR /work
 
-ENV RUSTFLAGS="-C target-feature=-crt-static -C link-args=-s" \
-  CARGO_REGISTRIES_CRATES_IO_PROTOCOL="sparse"
-
 COPY "$REPO_DIR" .
 RUN cargo build --release
 
@@ -25,9 +22,6 @@ RUN cargo build --release
 # runtime image
 ##
 FROM alpine
-
-RUN apk --no-cache add \
-  libstdc++
 
 COPY --from=builder /work/target/release/kaspa-miner /usr/local/bin/
 
