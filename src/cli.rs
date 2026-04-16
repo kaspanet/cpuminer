@@ -1,7 +1,7 @@
 use crate::Error;
 use clap::{ArgGroup, Parser};
 use log::LevelFilter;
-use std::{net::IpAddr, str::FromStr};
+use tonic::transport::Uri;
 
 #[derive(Debug, Parser)]
 #[clap(about, version, author)]
@@ -78,12 +78,24 @@ impl Opt {
             self.kaspad_address = "127.0.0.1".to_string();
         }
 
-        if !self.kaspad_address.starts_with("grpc://") {
-            IpAddr::from_str(&self.kaspad_address)?;
+        let has_scheme = has_supported_scheme(&self.kaspad_address);
+        let port_provided_as_arg = self.port.is_some();
+        let address = if has_scheme { self.kaspad_address.clone() } else { format!("http://{}", self.kaspad_address) };
+
+        let uri = Uri::try_from(address.as_str())?;
+        let authority = uri
+            .authority()
+            .ok_or_else(|| format!("invalid kaspad address `{}`: missing authority (host)", self.kaspad_address))?;
+
+        let scheme = uri.scheme_str().unwrap_or("http");
+        let path_and_query = uri.path_and_query().map(|value| value.as_str()).unwrap_or("");
+
+        if authority.port().is_none() && (!has_scheme || port_provided_as_arg) {
             let port = self.port();
-            self.kaspad_address = format!("grpc://{}:{}", self.kaspad_address, port);
+            self.kaspad_address = format!("{scheme}://{authority}:{port}{path_and_query}");
+        } else {
+            self.kaspad_address = format!("{scheme}://{authority}{path_and_query}");
         }
-        log::info!("Kaspad address: {}", self.kaspad_address);
 
         if let Some(suffix) = &self.user_agent_suffix {
             if suffix.contains('/') {
@@ -108,4 +120,8 @@ impl Opt {
             LevelFilter::Info
         }
     }
+}
+
+fn has_supported_scheme(address: &str) -> bool {
+    return address.starts_with("http://") || address.starts_with("https://");
 }

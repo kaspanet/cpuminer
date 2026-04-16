@@ -62,6 +62,8 @@ async fn main() -> Result<(), Error> {
     let mut opt: Opt = Opt::parse();
     opt.process()?;
 
+    log::info!("Kaspad address: {}", opt.kaspad_address);
+
     let mut builder = env_logger::builder();
     builder.filter_level(opt.log_level()).parse_default_env();
     if opt.altlogs {
